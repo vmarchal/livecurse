@@ -22,7 +22,7 @@ def ptid_to_initial(ptids):
 
 
 def get_data():
-    today = dt.date.today()
+    today = dt.date.today() - dt.timedelta(1)
     urls = (url.format(today) for url in (DA_URL, RT_URL))
     # get raw dfs, pre-parse
     da, rt = (pd.read_csv(url,

@@ -10,6 +10,7 @@ Data in the DataFrame can be formatted using usual python text formatting.
 
 The color pairs allowed by curses can be leveraged to highlight data of interest 
 using functions to be applied to columns.
+![Alt text](livecurses.png)
 
 ### License
 GNU General public license
