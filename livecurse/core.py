@@ -1,4 +1,6 @@
-
+"""
+Module containing the LiveDataFrame class.
+"""
 import itertools
 import time
 import curses
@@ -19,6 +21,7 @@ COLORS = {
 DEFAULT_FORMATTER = '{:.2f}'.format
 
 
+# Context manager for printing attributes in curses
 @contextmanager
 def print_attributes(stdscr, *args):
     for arg in args:
@@ -32,7 +35,14 @@ class LiveDataFrame:
     """
     An object meant to present a pandas.DataFrame in curses, returned by update_func,
     whose values are formatted by formatters, that can be colored using
-    functions using color_mappers
+    functions using color_mappers.
+    update_func is a function with no arguments that returns a DataFrame to 
+    be displayed.
+    update_freq is the frequency to update the data, in seconds.
+    formatters is a dictionnary whose keys are columns of the DataFrame and 
+    values are a function that will format said column's values.
+    index_formatter is a function to format the index.
+    default_color is the default foreground_background color pair.
     """
     def __init__(self, update_func, update_freq, formatters,
                  index_formatter=None, default_color='white_black'):
@@ -57,10 +67,11 @@ class LiveDataFrame:
         for kwd in highlighters.keys():
             pair = self._parse_color_kword(kwd)
             if pair not in self._pair_to_pairnum.keys():
+                # update existing color pairs
                 self._pair_to_pairnum.update(
                     {pair: len(self._pair_to_pairnum) + 1}
                 )
-
+        # make functions returning a color pair's id if True
         new_functions = [
             _make_function(f, self._parse_color_kword(k))
             for k, f in highlighters.items()
@@ -71,9 +82,11 @@ class LiveDataFrame:
         })
 
     def main(self):
+        # call to launch the curses interface.
         curses.wrapper(self._draw_df)
 
     def _draw_df(self, stdscr):
+        # Clear the screen
         stdscr.clear()
         stdscr.refresh()
 
@@ -84,9 +97,11 @@ class LiveDataFrame:
             height, width = stdscr.getmaxyx()
             # get text and formatter dataframes
             str_df, curse_format_df = self._make_dfs()
+            # Check if terminal size legal
             min_size = sum(str_df[c].str.len().max() + 1
                            for c in str_df.columns)
-            if min_size > width - 4:
+            min_height = len(str_df)
+            if (min_size > width - 4) or (min_height > height):
                 raise ValueError("Terminal too small to display data, please "
                                  "resize terminal\n"
                                  "Minimum width is {}".format(min_size + 4))
@@ -107,10 +122,12 @@ class LiveDataFrame:
             for ix in range(len(lengths)):
                 txt = str_df.iloc[iy, ix]
                 x = (start_x + 0 if ix == 0 else begs[ix-1])
+                # column names and index in bold and default pair
                 if (ix == 0) | (iy == 0):
                     args = (curses.A_BOLD, curses.color_pair(1))
                 else:
                     args = (curses.color_pair(cfmt_df.iloc[iy-1, ix-1]),)
+                # Add attributes and print to position
                 with print_attributes(stdscr, *args):
                     stdscr.addstr(y, x, txt)
                 stdscr.addstr(y, x + len(txt), '|')
@@ -173,5 +190,5 @@ class LiveDataFrame:
             c: full_df[c].str.pad(full_df[c].str.len().max() + 1)
             for c in full_df.columns
         })
-        full_df.to_csv('testest.csv')
         return full_df
+
